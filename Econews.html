@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>全球經濟新聞搜尋器</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #eef6fb;
+      color: #333;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 20px 20px;
+      background-color: #0a3d62;
+      color: white;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2em;
+    }
+
+    header p {
+      font-size: 1em;
+      margin-top: 10px;
+      opacity: 0.9;
+    }
+
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      gap: 10px;
+    }
+
+    input, select {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1em;
+    }
+
+    input[type="text"] {
+      width: 300px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #0a3d62;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+
+    button:hover {
+      background-color: #074173;
+    }
+
+    .keywords {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .keywords button {
+      margin: 5px;
+      background-color: #dfeffc;
+      color: #0a3d62;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    #resultsSection {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    #newsContainer {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .news-card {
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      padding: 20px;
+      transition: transform 0.2s;
+    }
+
+    .news-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .news-title {
+      font-size: 1.1em;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .news-meta {
+      font-size: 0.85em;
+      color: #777;
+      margin-bottom: 8px;
+    }
+
+    .news-description {
+      font-size: 0.95em;
+      margin-bottom: 12px;
+    }
+
+    .news-link {
+      display: inline-block;
+      padding: 6px 12px;
+      background-color: #0a3d62;
+      color: white;
+      border-radius: 5px;
+      text-decoration: none;
+      font-size: 0.9em;
+    }
+
+    .news-link:hover {
+      background-color: #074173;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🌐 全球經濟新聞搜尋器</h1>
+    <p>輸入關鍵字（如 tariff、升息、TSMC）即可取得即時新聞</p>
+  </header>
+
+  <form id="newsForm">
+    <input type="text" id="keyword" placeholder="輸入關鍵字..." required />
+    <select id="lang">
+      <option value="en">英文</option>
+      <option value="zh">中文</option>
+    </select>
+    <button type="submit">查詢新聞</button>
+  </form>
+
+  <div class="keywords">
+    熱門關鍵字：
+    <button onclick="setKeyword('inflation')">inflation</button>
+    <button onclick="setKeyword('tariff')">tariff</button>
+    <button onclick="setKeyword('semiconductor')">semiconductor</button>
+    <button onclick="setKeyword('中美關係')">中美關係</button>
+  </div>
+
+  <section id="resultsSection">
+    <h2>📋 查詢結果</h2>
+    <div id="newsContainer"></div>
+  </section>
+
+  <script>
+    const API_KEY = "413f36a958279f70bfb284352af29400";
+
+    function setKeyword(word) {
+      document.getElementById("keyword").value = word;
+    }
+
+    document.getElementById("newsForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const keyword = document.getElementById("keyword").value;
+      const lang = document.getElementById("lang").value;
+      const container = document.getElementById("newsContainer");
+
+      container.innerHTML = "<p>🔄 載入中...</p>";
+
+      localStorage.setItem("lastKeyword", keyword);
+      localStorage.setItem("lastLang", lang);
+
+      try {
+        const res = await fetch(`https://gnews.io/api/v4/search?q=${encodeURIComponent(keyword)}&lang=${lang}&token=${API_KEY}`);
+        const data = await res.json();
+
+        container.innerHTML = "";
+
+        if (!data.articles || data.articles.length === 0) {
+          container.innerHTML = "<p>❌ 找不到相關新聞</p>";
+          return;
+        }
+
+        data.articles.forEach(article => {
+          const card = document.createElement("div");
+          card.className = "news-card";
+
+          card.innerHTML = `
+            <div class="news-title">${article.title}</div>
+            <div class="news-meta">${article.source.name}｜${new Date(article.publishedAt).toLocaleString()}</div>
+            <div class="news-description">${article.description || '（無簡介）'}</div>
+            <a class="news-link" href="${article.url}" target="_blank">閱讀全文</a>
+          `;
+
+          container.appendChild(card);
+        });
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = "<p>⚠️ 發生錯誤，請稍後再試。</p>";
+      }
+    });
+
+    // 自動載入最近一次搜尋
+    window.onload = () => {
+      const lastKeyword = localStorage.getItem("lastKeyword");
+      const lastLang = localStorage.getItem("lastLang") || "en";
+      if (lastKeyword) {
+        document.getElementById("keyword").value = lastKeyword;
+        document.getElementById("lang").value = lastLang;
+        document.getElementById("newsForm").dispatchEvent(new Event("submit"));
+      }
+    };
+  </script>
+</body>
+</html>
